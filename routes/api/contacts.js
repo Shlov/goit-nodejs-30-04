@@ -7,7 +7,7 @@ const ctrl = require('../../controllers/contacts');
 
 const router = express.Router();
 
-router.use(auth);
+// router.use(auth);
 
 router.get('/', ctrl.getContacts);
 

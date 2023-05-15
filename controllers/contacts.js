@@ -2,6 +2,7 @@ const contacts = require("../models/contacts");
 
 
 const getContacts = async (req, res, next) => {
+  console.log('tyt')
   try {
     const {page = 1, limit = 6, favorite} = req.query;
     const skip = (page - 1) * limit;

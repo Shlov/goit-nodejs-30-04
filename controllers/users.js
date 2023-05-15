@@ -1,8 +1,11 @@
 const {checkUser, addUser, recordToken, updateSubUser} = require('../models/users');
-const bcrypt = require('bcrypt');
+// const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const gravatar = require('gravatar');
 const Users = require("../service/schemas/users");
+const sendEmail = require('../helpers/sendEmail');
+const formatAvatar = require('../helpers/formatAvatar');
+const path = require('path');
 
 
 const {SECRET_KEY} = process.env;
@@ -11,7 +14,7 @@ const {SECRET_KEY} = process.env;
 const register = async(req, res, next) => {
   try {
     const {email, password} = req.body;
-    console.log('contr', req.body);
+    // console.log('contr', req.body);
     const result = await checkUser({email: email});
     if (result) {
       return res.status(409).json({message: 'Email in use'});
@@ -46,7 +49,7 @@ const login = async(req, res, next) => {
     const payload = {id: result._id, name: result.name};
     const token = jwt.sign(payload, SECRET_KEY, {expiresIn: '1d'});
     await recordToken(result._id, token);
-    res.json({token , user: {email: result.email, subscription: result.subscription, name: 'test log' }});
+    res.json({token , user: {email: result.email, subscription: result.subscription, name: result.name }});
   } catch (error) {
     next(error);
   };
@@ -70,7 +73,7 @@ const current = async(req, res, next) => {
         message: "Not authorized"
       });
     };
-    res.json({email: user.email, subscription: user.subscription, name: 'test log'});
+    res.json({email: user.email, subscription: user.subscription, name: user.name});
   } catch (error) {
     next(error);
   };
@@ -92,10 +95,77 @@ const patchSubscription = async(req, res, next) => {
   }
 };
 
+const patchAvatar = async(req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "avatar file missing" });
+    };    
+    const avatarsPath = path.join(__dirname, '../public/avatars', `${req.user.id}-avatar.png`);
+    const avatarsURL = path.join('/avatars', `${req.user.id}-avatar.png`);
+    await formatAvatar(req.file.path, avatarsPath);
+    const result = await updateSubUser(req.user.id, {avatarURL: avatarsURL});
+    if (result) {
+      return res.json({ "avatarURL": avatarsURL });
+    };
+    res.status(404).json({ message: "Not found" });
+  } catch (error) {
+    next(error);
+  };
+};
+
+const verifyEmail = async(req, res, next) => {
+  const {verificationToken} = req.params;
+  console.log('tut')
+  try {
+    if (!verificationToken) {
+      return res.status(404).json({ message: "Not found" });
+    };
+    const user = await checkUser({verificationToken: verificationToken});
+    if (!user) {
+      return res.status(404).json({ message: "Not found" });
+    };
+    await updateSubUser(user._id, {verify: true, verificationToken: null});
+    if (user) {
+      return res.json({message: 'Verification successful'});
+    };
+    res.status(404).json({ message: "Not found" });
+  } catch (error) {
+    next(error);
+  };
+};
+
+const resendVerification = async(req, res, next) => {
+  const {email} = req.body;
+  if (!Object.keys(req.body).includes('email')) {
+    return res.status(400).json({ message: "missing required field email" });
+  };
+  try {
+    const user = await checkUser({email: email});
+    if (!user) {
+      return res.status(404).json({ message: "Not found" });
+    };
+    if (user.verify) {
+      return res.status(400).json({ message: "Verification has already been passed" });
+    };
+    const mail = {
+      to: email,
+      subject: 'Email confirmation. PhoneBook.',
+      html: `<a target="_blank" href="http://localhost:3000/users/verify/${user.verificationToken}">To confirm email</a>`,
+    };
+    await sendEmail(mail);
+    res.json({ message: "Verification email sent" });
+  } catch (error) {
+    next(error);
+  };
+};
+
 module.exports = {
   register,
   login,
   logout,
   current,
-  patchSubscription
+  patchSubscription,
+  patchAvatar,
+  verifyEmail,
+  resendVerification
 };
