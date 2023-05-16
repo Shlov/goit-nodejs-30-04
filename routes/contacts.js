@@ -1,13 +1,13 @@
 const express = require('express');
-const validateData = require('../../helpers/validateData');
-const auth = require('../../middlewares/auth');
-const owner = require('../../middlewares/ownerConctact');
+const validateData = require('../helpers/validateData');
+const auth = require('../middlewares/auth');
+const owner = require('../middlewares/ownerConctact');
 
-const ctrl = require('../../controllers/contacts');
+const ctrl = require('../controllers/contacts');
 
 const router = express.Router();
 
-// router.use(auth);
+router.use(auth);
 
 router.get('/', ctrl.getContacts);
 

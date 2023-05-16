@@ -1,4 +1,5 @@
 const contacts = require("../models/contacts");
+const mongoose = require('mongoose');
 
 
 const getContacts = async (req, res, next) => {
@@ -18,8 +19,10 @@ const getContact = async (req, res, next) => {
   try {
     // const result = await contacts.getContactById(req.params.contactId);
     const result = await contacts.getContact({owner: req.user.id, _id: req.params.contactId});
+    console.log('get con', result)
+
     if (!result) {
-      return res.status(404).json({ message: "Not found" });
+      return res.status(400).json({ message: "Email already exists." });
     }
     res.json(result);
   } catch (error) {
@@ -28,7 +31,16 @@ const getContact = async (req, res, next) => {
 };
 
 const postContact = async (req, res, next) => {
+  // console.log('ctrl add')
+  // console.log({...req.body, owner: req.user.id})
+  console.log(req.body)
   try {
+    // const result = await contacts.getContact({owner: req.user.id, req.body.email});
+
+    // if (!result) {
+    //   return res.status(404).json({ message: "Not found" });
+    // }
+    
     const newContact = await contacts.addContact({...req.body, owner: req.user.id});
     res.status(201).json(newContact);
   } catch (error) {

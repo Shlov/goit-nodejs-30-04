@@ -20,6 +20,7 @@ const removeContact = async (contactId) => {
 };
 
 const addContact = async (newContact) => {
+  console.log('newContact', newContact)
   return await Contacts.create(newContact);
 };
 
